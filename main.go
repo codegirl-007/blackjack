@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -41,12 +42,22 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		}
+	}
+
 	return m, nil
 }
 
 func (m model) View() string {
-	// Send the UI for rendering
-	return "something"
+	// The header
+	s := "Lets play some blackjack.\n\n"
+
+	return s
 }
 
 type Deck struct {
@@ -55,7 +66,6 @@ type Deck struct {
 
 func (d *Deck) shuffle() Deck {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	fmt.Println("Shuffled")
 	r.Shuffle(len(d.cards), func(i, j int) {
 		d.cards[i], d.cards[j] = d.cards[j], d.cards[i]
 	})
@@ -71,6 +81,7 @@ func (d *Deck) deal() *Card {
 	card := d.cards[len(d.cards)-1]
 	d.cards = d.cards[0 : len(d.cards)-1]
 
+	fmt.Printf("something something")
 	return &card
 }
 
@@ -101,11 +112,19 @@ func initialModel() model {
 		}
 	}
 
+	for i := 0; i < 5; i++ {
+		hands = append(hands, hand{cards: cards})
+	}
+
+	fmt.Println("yo")
 	deck := Deck{cards: cards}
 	deck = deck.shuffle()
+	fmt.Println("shuffled cards")
 
+	fmt.Println("length of hands", len(hands))
 	// deal cards to each hand in game
 	for i := 0; i < len(hands); i++ {
+		fmt.Printf("dealing cards")
 		hands[i].take(deck.deal())
 	}
 
@@ -116,5 +135,13 @@ func initialModel() model {
 }
 
 func main() {
-	tea.NewProgram(initialModel())
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		log.Fatalf("error logging to `debug.log`: %v", err)
+	}
+	defer f.Close()
+	p := tea.NewProgram(initialModel())
+	if _, err := p.Run(); err != nil {
+		log.Fatalf("error running program: %v", err)
+	}
 }
